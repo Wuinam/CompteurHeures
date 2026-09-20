@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Compteur d'Heures</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --danger: #ef4444;
+            --background: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--background);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: #0f172a;
+        }
+
+        .card {
+            background: var(--card);
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 24px;
+            border: 1px solid var(--border);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        input:focus {
+            outline: 2px solid var(--primary);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .historique-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .historique-item:last-child {
+            border-bottom: none;
+        }
+
+        .note-texte {
+            display: block;
+            font-size: 13px;
+            color: #64748b;
+            margin-top: 4px;
+            font-style: italic;
+        }
+
+        .btn-delete {
+            background: none;
+            color: var(--danger);
+            border: none;
+            padding: 4px 8px;
+            width: auto;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .btn-delete:hover {
+            text-decoration: underline;
+            background: none;
+        }
+
+        .total-global {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 10px;
+            color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>⏱️ Mon Compteur d'Heures</h1>
+
+    <!-- Formulaire d'ajout -->
+    <div class="card">
+        <form id="timeForm">
+            <div class="form-group">
+                <label for="date">Date</label>
+                <input type="date" id="date" required>
+            </div>
+            <div class="form-group">
+                <label for="debut">Heure d'arrivée</label>
+                <input type="time" id="debut" required>
+            </div>
+            <div class="form-group">
+                <label for="fin">Heure de départ</label>
+                <input type="time" id="fin" required>
+            </div>
+            <div class="form-group">
+                <label for="pause">Temps de pause (en minutes)</label>
+                <input type="number" id="pause" value="0" min="0" required>
+            </div>
+            <div class="form-group">
+                <label for="note">Commentaire / Note (ex: Trajet, Mise en service...)</label>
+                <input type="text" id="note" placeholder="Ajouter un détail sur votre journée">
+            </div>
+            <button type="submit">Enregistrer la journée</button>
+        </form>
+    </div>
+
+    <!-- Historique -->
+    <h2>📋 Historique & Total</h2>
+    <div class="card">
+        <div id="totalGlobal" class="total-global">Total cumulé : 0h00</div>
+        <div id="historiqueListe" style="margin-top: 15px;">
+            <!-- Les journées s'ajouteront ici en JavaScript -->
+        </div>
+    </div>
+</div>
+
+<script>
+    const form = document.getElementById('timeForm');
+    const historiqueListe = document.getElementById('historiqueListe');
+    const totalGlobal = document.getElementById('totalGlobal');
+    
+    document.getElementById('date').valueAsDate = new Date();
+
+    let sauvegardes = JSON.parse(localStorage.getItem('heuresTravail')) || [];
+
+    function formaterMinutes(minutesTotales) {
+        const heures = Math.floor(minutesTotales / 60);
+        const minutes = minutesTotales % 60;
+        return `${heures}h${minutes.toString().padStart(2, '0')}`;
+    }
+
+    function formaterDate(dateString) {
+        const [annee, mois, jour] = dateString.split('-');
+        return `${jour}/${mois}/${annee}`;
+    }
+
+    function mettreAJourAffichage() {
+        historiqueListe.innerHTML = '';
+        let cumulMinutes = 0;
+
+        sauvegardes.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        sauvegardes.forEach((session, index) => {
+            cumulMinutes += session.minutesTravaillees;
+
+            // Gestion de l'affichage de la note si elle existe
+            const texteNote = session.note ? `<span class="note-texte">📝 ${session.note}</span>` : '';
+
+            const div = document.createElement('div');
+            div.className = 'historique-item';
+            div.innerHTML = `
+                <div>
+                    <strong>${formaterDate(session.date)}</strong> : 
+                    ${session.debut} - ${session.fin} (${session.pause}m pause)
+                    ${texteNote}
+                </div>
+                <div style="display: flex; align-items: center;">
+                    <span style="font-weight:600; margin-right:15px;">${formaterMinutes(session.minutesTravaillees)}</span>
+                    <button class="btn-delete" onclick="supprimerJournee(${index})">Supprimer</button>
+                </div>
+            `;
+            historiqueListe.appendChild(div);
+        });
+
+        if (sauvegardes.length === 0) {
+            historiqueListe.innerHTML = '<p style="text-align:center; color:#64748b;">Aucune heure enregistrée.</p>';
+        }
+
+        totalGlobal.innerText = `Total cumulé : ${formaterMinutes(cumulMinutes)}`;
+    }
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const date = document.getElementById('date').value;
+        const debut = document.getElementById('debut').value;
+        const fin = document.getElementById('fin').value;
+        const pause = parseInt(document.getElementById('pause').value) || 0;
+        const note = document.getElementById('note').value.trim();
+
+        const [debutH, debutM] = debut.split(':').map(Number);
+        const [finH, finM] = fin.split(':').map(Number);
+
+        const minutesDebut = (debutH * 60) + debutM;
+        const minutesFin = (finH * 60) + finM;
+
+        let minutesTravaillees = minutesFin - minutesDebut - pause;
+
+        if (minutesTravaillees < 0) {
+            alert("Erreur : L'heure de départ ou la pause rend le temps de travail négatif !");
+            return;
+        }
+
+        const nouvelleJournee = {
+            date,
+            debut,
+            fin,
+            pause,
+            minutesTravaillees,
+            note // Sauvegarde de la note
+        };
+
+        sauvegardes.push(nouvelleJournee);
+        localStorage.setItem('heuresTravail', JSON.stringify(sauvegardes));
+
+        mettreAJourAffichage();
+        
+        // Réinitialisation des champs (sauf la date)
+        document.getElementById('debut').value = '';
+        document.getElementById('fin').value = '';
+        document.getElementById('pause').value = '0';
+        document.getElementById('note').value = '';
+    });
+
+    window.supprimerJournee = function(index) {
+        if (confirm("Voulez-vous supprimer cette ligne ?")) {
+            sauvegardes.splice(index, 1);
+            localStorage.setItem('heuresTravail', JSON.stringify(sauvegardes));
+            mettreAJourAffichage();
+        }
+    }
+
+    mettreAJourAffichage();
+</script>
+
+</body>
+</html>
