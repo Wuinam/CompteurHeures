@@ -177,29 +177,29 @@
 
     <!-- SECTION POINTAGE -->
     <div class="card" id="trackingCard">
-        <!-- Rempli par JS -->
+        <!-- Rempli par le JavaScript -->
     </div>
 
     <!-- HISTORIQUE -->
     <div>
         <h2>Historique de la semaine</h2>
         <ul class="history-list" id="historyList">
-            <!-- Rempli par JS -->
+            <!-- Rempli par le JavaScript -->
         </ul>
     </div>
 </div>
 
 <script>
     // Variables d'état sécurisées
-    let arrivalTime = null;
-    const storedArrival = localStorage.getItem('arrivalTime');
+    var arrivalTime = null;
+    var storedArrival = localStorage.getItem("arrivalTime");
     if (storedArrival) {
         arrivalTime = new Date(storedArrival);
     }
 
-    let sessions = [];
+    var sessions = [];
     try {
-        const storedSessions = localStorage.getItem('workSessions');
+        var storedSessions = localStorage.getItem("workSessions");
         if (storedSessions) {
             sessions = JSON.parse(storedSessions);
         }
@@ -208,101 +208,98 @@
     }
 
     // Éléments DOM
-    const trackingCard = document.getElementById('trackingCard');
-    const historyList = document.getElementById('historyList');
+    var trackingCard = document.getElementById("trackingCard");
+    var historyList = document.getElementById("historyList");
 
     function generateSelectOptions(max, suffix) {
-        let html = '';
-        for (let i = 0; i < max; i++) {
-            html += `<option value="${i}">${i} ${suffix}</option>`;
+        var html = "";
+        for (var i = 0; i < max; i++) {
+            html += "<option value='" + i + "'>" + i + " " + suffix + "</option>";
         }
         return html;
     }
 
     function formatTime(date) {
         if (!date) return "--:--";
-        return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        return date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
     }
 
     function formatDate(date) {
         if (!date) return "";
-        return date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+        return date.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
     }
 
     function formatDuration(seconds) {
-        const h = Math.floor(seconds / 3600);
-        const m = Math.floor((seconds % 3600) / 60);
-        return `${h}h ${m.toString().padStart(2, '0')}min`;
+        var h = Math.floor(seconds / 3600);
+        var m = Math.floor((seconds % 3600) / 60);
+        return h + "h " + m.toString().padStart(2, "0") + "min";
     }
 
     function render() {
         // 1. Rendu de la zone de pointage
         if (arrivalTime && !isNaN(arrivalTime.getTime())) {
-            trackingCard.innerHTML = `
-                <div class="status-title">En cours de travail 💼</div>
-                <div class="time-display">Arrivé(e) à : ${formatTime(arrivalTime)}</div>
-                
-                <input type="text" id="noteInput" placeholder="Notes (optionnel)">
-                
-                <div class="break-section">
-                    <div class="break-label">Durée de la pause déjeuner :</div>
-                    <div class="break-inputs">
-                        <select id="breakHours">${generateSelectOptions(5, 'h')}</select>
-                        <select id="breakMinutes">${generateSelectOptions(60, 'min')}</select>
-                    </div>
-                </div>
-                
-                <button class="btn btn-red" onclick="validateDeparture()">Valider la fin de journée</button>
-                <button class="btn btn-text" onclick="cancelArrival()">Annuler l'arrivée</button>
-            `;
-            document.getElementById('breakHours').value = 1;
+            trackingCard.innerHTML = 
+                "<div class='status-title'>En cours de travail 💼</div>" +
+                "<div class='time-display'>Arrivé(e) à : " + formatTime(arrivalTime) + "</div>" +
+                "<input type='text' id='noteInput' placeholder='Notes (optionnel)'>" +
+                "<div class='break-section'>" +
+                    "<div class='break-label'>Durée de la pause déjeuner :</div>" +
+                    "<div class='break-inputs'>" +
+                        "<select id='breakHours'>" + generateSelectOptions(5, "h") + "</select>" +
+                        "<select id='breakMinutes'>" + generateSelectOptions(60, "min") + "</select>" +
+                    "</div>" +
+                "</div>" +
+                "<button class='btn btn-red' onclick='validateDeparture()'>Valider la fin de journée</button>" +
+                "<button class='btn btn-text' onclick='cancelArrival()'>Annuler l'arrivée</button>";
+            
+            document.getElementById("breakHours").value = 1;
         } else {
-            trackingCard.innerHTML = `
-                <div style="color: var(--text-secondary); font-size: 15px;">Prêt pour votre journée ?</div>
-                <button class="btn btn-green" onclick="setArrival()">Indiquer mon heure d'arrivée</button>
-            `;
+            trackingCard.innerHTML = 
+                "<div style='color: var(--text-secondary); font-size: 15px;'>Prêt pour votre journée ?</div>" +
+                "<button class='btn btn-green' onclick='setArrival()'>Indiquer mon heure d'arrivée</button>";
         }
 
         // 2. Rendu de l'historique
-        historyList.innerHTML = '';
+        historyList.innerHTML = "";
         if (!sessions || sessions.length === 0) {
-            historyList.innerHTML = `<li style="text-align:center; color:var(--text-secondary); padding: 20px;">Aucune session enregistrée.</li>`;
+            historyList.innerHTML = "<li style='text-align:center; color:var(--text-secondary); padding: 20px;'>Aucune session enregistrée.</li>";
         } else {
-            sessions.forEach((session, index) => {
-                const start = new Date(session.startTime);
-                const end = new Date(session.endTime);
+            sessions.forEach(function(session, index) {
+                var start = new Date(session.startTime);
+                var end = new Date(session.endTime);
                 
-                const bHours = Math.floor((session.breakSeconds || 0) / 3600);
-                const bMin = Math.floor(((session.breakSeconds || 0) % 3600) / 60);
-                const breakText = bHours > 0 ? `${bHours}h ${bMin}m` : `${bMin}min`;
+                var bHours = Math.floor((session.breakSeconds || 0) / 3600);
+                var bMin = Math.floor(((session.breakSeconds || 0) % 3600) / 60);
+                var breakText = bHours > 0 ? bHours + "h " + bMin + "m" : bMin + "min";
 
-                historyList.innerHTML += `
-                    <li class="history-item">
-                        <div class="history-left">
-                            <div class="history-date">${formatDate(start)}</div>
-                            <div class="history-hours">${formatTime(start)} → ${formatTime(end)} (Pause : ${breakText})</div>
-                            ${session.note ? `<div class="history-note">${session.note}</div>` : ''}
-                        </div>
-                        <div class="history-right">
-                            <div class="duration">${formatDuration(session.durationSeconds || 0)}</div>
-                            <button class="btn-delete" onclick="deleteSession(${index})">🗑️</button>
-                        </div>
-                    </li>
-                `;
+                var noteHtml = session.note ? "<div class='history-note'>" + session.note + "</div>" : "";
+
+                historyList.innerHTML += 
+                    "<li class='history-item'>" +
+                        "<div class='history-left'>" +
+                            "<div class='history-date'>" + formatDate(start) + "</div>" +
+                            "<div class='history-hours'>" + formatTime(start) + " → " + formatTime(end) + " (Pause : " + breakText + ")</div>" +
+                            noteHtml +
+                        "</div>" +
+                        "<div class='history-right'>" +
+                            "<div class='duration'>" + formatDuration(session.durationSeconds || 0) + "</div>" +
+                            "<button class='btn-delete' onclick='deleteSession(" + index + ")'>🗑️</button>" +
+                        "</div>" +
+                    "</li>";
             });
         }
     }
 
     function setArrival() {
         arrivalTime = new Date();
-        localStorage.setItem('arrivalTime', arrivalTime.toISOString());
+        localStorage.setItem("arrivalTime", arrivalTime.toISOString());
         render();
     }
 
     function cancelArrival() {
         if(confirm("Annuler l'heure d'arrivée courante ?")) {
             arrivalTime = null;
-            localStorage.removeItem('arrivalTime');
+            localStorage.removeItem("arrivalTime");
             render();
         }
     }
@@ -310,8 +307,43 @@
     function validateDeparture() {
         if (!arrivalTime) return;
         
-        const endTime = new Date();
-        const note = document.getElementById('noteInput').value.trim();
-        const breakHours = parseInt(document.getElementById('breakHours').value) || 0;
-        const breakMinutes = parseInt(document.getElementById('breakMinutes').value) || 0;
+        var endTime = new Date();
+        var note = document.getElementById("noteInput").value.trim();
+        var breakHours = parseInt(document.getElementById("breakHours").value) || 0;
+        var breakMinutes = parseInt(document.getElementById("breakMinutes").value) || 0;
         
+        var breakSeconds = (breakHours * 3600) + (breakMinutes * 60);
+        var durationSeconds = ((endTime.getTime() - arrivalTime.getTime()) / 1000) - breakSeconds;
+        if (durationSeconds < 0) durationSeconds = 0;
+
+        var newSession = {
+            id: Date.now(),
+            startTime: arrivalTime.toISOString(),
+            endTime: endTime.toISOString(),
+            breakSeconds: breakSeconds,
+            durationSeconds: durationSeconds,
+            note: note || "Journée de travail"
+        };
+
+        sessions.unshift(newSession);
+        localStorage.setItem("workSessions", JSON.stringify(sessions));
+
+        arrivalTime = null;
+        localStorage.removeItem("arrivalTime");
+        render();
+    }
+
+    function deleteSession(index) {
+        if(confirm("Supprimer cette session de l'historique ?")) {
+            sessions.splice(index, 1);
+            localStorage.setItem("workSessions", JSON.stringify(sessions));
+            render();
+        }
+    }
+
+    // Premier chargement
+    render();
+</script>
+
+</body>
+</html>
