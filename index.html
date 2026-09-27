@@ -135,7 +135,6 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            position: relative;
         }
 
         .history-left {
@@ -178,28 +177,40 @@
 
     <!-- SECTION POINTAGE -->
     <div class="card" id="trackingCard">
-        <!-- Rempli dynamiquement par le JavaScript -->
+        <!-- Rempli par JS -->
     </div>
 
     <!-- HISTORIQUE -->
     <div>
         <h2>Historique de la semaine</h2>
         <ul class="history-list" id="historyList">
-            <!-- Rempli dynamiquement par le JavaScript -->
+            <!-- Rempli par JS -->
         </ul>
     </div>
 </div>
 
 <script>
-    // Variables d'état
-    let arrivalTime = localStorage.getItem('arrivalTime') ? new Date(localStorage.getItem('arrivalTime')) : null;
-    let sessions = JSON.parse(localStorage.getItem('workSessions')) || [];
+    // Variables d'état sécurisées
+    let arrivalTime = null;
+    const storedArrival = localStorage.getItem('arrivalTime');
+    if (storedArrival) {
+        arrivalTime = new Date(storedArrival);
+    }
+
+    let sessions = [];
+    try {
+        const storedSessions = localStorage.getItem('workSessions');
+        if (storedSessions) {
+            sessions = JSON.parse(storedSessions);
+        }
+    } catch (e) {
+        sessions = [];
+    }
 
     // Éléments DOM
     const trackingCard = document.getElementById('trackingCard');
     const historyList = document.getElementById('historyList');
 
-    // Initialisation des sélecteurs de pause
     function generateSelectOptions(max, suffix) {
         let html = '';
         for (let i = 0; i < max; i++) {
@@ -208,12 +219,13 @@
         return html;
     }
 
-    // Formater l'affichage des dates et heures
     function formatTime(date) {
+        if (!date) return "--:--";
         return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
     }
 
     function formatDate(date) {
+        if (!date) return "";
         return date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
     }
 
@@ -223,10 +235,9 @@
         return `${h}h ${m.toString().padStart(2, '0')}min`;
     }
 
-    // Mettre à jour l'interface principale
     function render() {
         // 1. Rendu de la zone de pointage
-        if (arrivalTime) {
+        if (arrivalTime && !isNaN(arrivalTime.getTime())) {
             trackingCard.innerHTML = `
                 <div class="status-title">En cours de travail 💼</div>
                 <div class="time-display">Arrivé(e) à : ${formatTime(arrivalTime)}</div>
@@ -244,7 +255,6 @@
                 <button class="btn btn-red" onclick="validateDeparture()">Valider la fin de journée</button>
                 <button class="btn btn-text" onclick="cancelArrival()">Annuler l'arrivée</button>
             `;
-            // Sélection par défaut courante pour le midi (1h)
             document.getElementById('breakHours').value = 1;
         } else {
             trackingCard.innerHTML = `
@@ -255,16 +265,15 @@
 
         // 2. Rendu de l'historique
         historyList.innerHTML = '';
-        if (sessions.length === 0) {
+        if (!sessions || sessions.length === 0) {
             historyList.innerHTML = `<li style="text-align:center; color:var(--text-secondary); padding: 20px;">Aucune session enregistrée.</li>`;
         } else {
             sessions.forEach((session, index) => {
                 const start = new Date(session.startTime);
                 const end = new Date(session.endTime);
                 
-                // Calcul de la pause à afficher
-                const bHours = Math.floor(session.breakSeconds / 3600);
-                const bMin = Math.floor((session.breakSeconds % 3600) / 60);
+                const bHours = Math.floor((session.breakSeconds || 0) / 3600);
+                const bMin = Math.floor(((session.breakSeconds || 0) % 3600) / 60);
                 const breakText = bHours > 0 ? `${bHours}h ${bMin}m` : `${bMin}min`;
 
                 historyList.innerHTML += `
@@ -275,7 +284,7 @@
                             ${session.note ? `<div class="history-note">${session.note}</div>` : ''}
                         </div>
                         <div class="history-right">
-                            <div class="duration">${formatDuration(session.durationSeconds)}</div>
+                            <div class="duration">${formatDuration(session.durationSeconds || 0)}</div>
                             <button class="btn-delete" onclick="deleteSession(${index})">🗑️</button>
                         </div>
                     </li>
@@ -284,7 +293,6 @@
         }
     }
 
-    // Actions
     function setArrival() {
         arrivalTime = new Date();
         localStorage.setItem('arrivalTime', arrivalTime.toISOString());
@@ -305,3 +313,5 @@
         const endTime = new Date();
         const note = document.getElementById('noteInput').value.trim();
         const breakHours = parseInt(document.getElementById('breakHours').value) || 0;
+        const breakMinutes = parseInt(document.getElementById('breakMinutes').value) || 0;
+        
