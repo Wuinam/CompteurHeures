@@ -81,15 +81,32 @@
         .btn-green { background-color: var(--success); color: white; }
         .btn-red { background-color: var(--danger); color: white; }
         .btn-text { background-color: transparent; color: var(--text-secondary); font-size: 14px; padding: 5px; }
+        .btn-secondary { background-color: #e5e5ea; color: #007aff; }
 
-        input[type="text"] {
+        input[type="text"], input[type="time"], input[type="date"] {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             border: 1px solid #d1d1d6;
             border-radius: 8px;
             box-sizing: border-box;
-            font-size: 15px;
+            font-size: 16px;
             text-align: center;
+            background-color: #fff;
+            color: #000;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            text-align: left;
+        }
+
+        .input-group label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            padding-left: 4px;
         }
 
         .break-section {
@@ -168,6 +185,14 @@
             cursor: pointer;
             padding: 5px;
         }
+
+        .mode-toggle {
+            font-size: 14px;
+            color: var(--primary);
+            text-decoration: underline;
+            cursor: pointer;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -175,7 +200,7 @@
 <div class="container">
     <h1>Mes Heures</h1>
 
-    <!-- SECTION POINTAGE -->
+    <!-- SECTION POINTAGE AUTOMATIQUE / MANUEL -->
     <div class="card" id="trackingCard">
         <!-- Rempli par le JavaScript -->
     </div>
@@ -190,7 +215,7 @@
 </div>
 
 <script>
-    // Variables d'état sécurisées
+    // Variables d'état
     var arrivalTime = null;
     var storedArrival = localStorage.getItem("arrivalTime");
     if (storedArrival) {
@@ -206,6 +231,9 @@
     } catch (e) {
         sessions = [];
     }
+
+    // Mode d'affichage par défaut (auto)
+    var isManualMode = false;
 
     // Éléments DOM
     var trackingCard = document.getElementById("trackingCard");
@@ -235,9 +263,23 @@
         return h + "h " + m.toString().padStart(2, "0") + "min";
     }
 
+    function getTodayDateString() {
+        var today = new Date();
+        var yyyy = today.getFullYear();
+        var mm = String(today.getMonth() + 1).padStart(2, "0");
+        var dd = String(today.getDate()).padStart(2, "0");
+        return yyyy + "-" + mm + "-" + dd;
+    }
+
+    function toggleMode() {
+        isManualMode = !isManualMode;
+        render();
+    }
+
     function render() {
-        // 1. Rendu de la zone de pointage
+        // 1. Rendu de la zone de saisie / pointage
         if (arrivalTime && !isNaN(arrivalTime.getTime())) {
+            // Mode : Pointage automatique commencé, en attente du départ
             trackingCard.innerHTML = 
                 "<div class='status-title'>En cours de travail 💼</div>" +
                 "<div class='time-display'>Arrivé(e) à : " + formatTime(arrivalTime) + "</div>" +
@@ -253,10 +295,40 @@
                 "<button class='btn btn-text' onclick='cancelArrival()'>Annuler l'arrivée</button>";
             
             document.getElementById("breakHours").value = 1;
+        } else if (isManualMode) {
+            // Mode : Saisie 100% manuelle (oubli de pointage)
+            trackingCard.innerHTML = 
+                "<div class='status-title' style='color: var(--primary);'>Saisie manuelle ✍️</div>" +
+                "<div class='input-group'>" +
+                    "<label>Date du jour</label>" +
+                    "<input type='date' id='manualDate' value='" + getTodayDateString() + "'>" +
+                "</div>" +
+                "<div class='input-group'>" +
+                    "<label>Heure d'arrivée</label>" +
+                    "<input type='time' id='manualArrival' value='08:00'>" +
+                "</div>" +
+                "<div class='input-group'>" +
+                    "<label>Heure de départ</label>" +
+                    "<input type='time' id='manualDeparture' value='17:00'>" +
+                "</div>" +
+                "<div class='break-section'>" +
+                    "<div class='break-label'>Durée de la pause déjeuner :</div>" +
+                    "<div class='break-inputs'>" +
+                        "<select id='breakHours'>" + generateSelectOptions(5, "h") + "</select>" +
+                        "<select id='breakMinutes'>" + generateSelectOptions(60, "min") + "</select>" +
+                    "</div>" +
+                "</div>" +
+                "<input type='text' id='noteInput' placeholder='Notes (optionnel)'>" +
+                "<button class='btn btn-green' onclick='validateManualEntry()'>Enregistrer la journée</button>" +
+                "<div class='mode-toggle' onclick='toggleMode()'>Retour au bouton automatique</div>";
+            
+            document.getElementById("breakHours").value = 1;
         } else {
+            // Mode : Bouton automatique par défaut
             trackingCard.innerHTML = 
                 "<div style='color: var(--text-secondary); font-size: 15px;'>Prêt pour votre journée ?</div>" +
-                "<button class='btn btn-green' onclick='setArrival()'>Indiquer mon heure d'arrivée</button>";
+                "<button class='btn btn-green' onclick='setArrival()'>Indiquer mon heure d'arrivée</button>" +
+                "<div class='mode-toggle' onclick='toggleMode()'>Ajouter une journée oubliée (Manuel)</div>";
         }
 
         // 2. Rendu de l'historique
@@ -330,6 +402,49 @@
 
         arrivalTime = null;
         localStorage.removeItem("arrivalTime");
+        render();
+    }
+
+    function validateManualEntry() {
+        var dateVal = document.getElementById("manualDate").value;
+        var arrivalVal = document.getElementById("manualArrival").value;
+        var departureVal = document.getElementById("manualDeparture").value;
+        var note = document.getElementById("noteInput").value.trim();
+        
+        if (!dateVal || !arrivalVal || !departureVal) {
+            alert("Veuillez remplir tous les champs horaires.");
+            return;
+        }
+
+        var start = new Date(dateVal + "T" + arrivalVal + ":00");
+        var end = new Date(dateVal + "T" + departureVal + ":00");
+
+        if (end <= start) {
+            alert("L'heure de départ doit être après l'heure d'arrivée.");
+            return;
+        }
+
+        var breakHours = parseInt(document.getElementById("breakHours").value) || 0;
+        var breakMinutes = parseInt(document.getElementById("breakMinutes").value) || 0;
+        var breakSeconds = (breakHours * 3600) + (breakMinutes * 60);
+        
+        var durationSeconds = ((end.getTime() - start.getTime()) / 1000) - breakSeconds;
+        if (durationSeconds < 0) durationSeconds = 0;
+
+        var newSession = {
+            id: Date.now(),
+            startTime: start.toISOString(),
+            endTime: end.toISOString(),
+            breakSeconds: breakSeconds,
+            durationSeconds: durationSeconds,
+            note: note || "Saisie manuelle"
+        };
+
+        sessions.unshift(newSession);
+        localStorage.setItem("workSessions", JSON.stringify(sessions));
+
+        // Retour au mode automatique après validation
+        isManualMode = false;
         render();
     }
 
